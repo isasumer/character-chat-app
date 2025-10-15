@@ -33,6 +33,7 @@ function ChatInterfaceContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -132,7 +133,7 @@ function ChatInterfaceContent() {
     scrollToBottom();
   }, [messages.length]);
 
-  // Send message
+  // Send message with streaming
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !session || !auth?.user?.id || isSending) return;
 
@@ -140,6 +141,7 @@ function ChatInterfaceContent() {
     setInputMessage("");
     setIsSending(true);
     setError(null);
+    setStreamingMessage("");
 
     try {
       // Insert user message
@@ -161,10 +163,11 @@ function ChatInterfaceContent() {
         setMessages((prev) => [...prev, { ...(userMsg as Message), isNew: true }]);
       }
 
-      // Show typing indicator
+      // Show typing indicator briefly, then start streaming
       setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 500);
 
-      // Get AI response
+      // Get streaming AI response
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -182,19 +185,70 @@ function ChatInterfaceContent() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get AI response");
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        throw new Error(`Failed to get AI response: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error("No response body received from server");
+      }
 
-      // Insert AI message
+      // Read streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullAiMessage = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              if (data.done) {
+                fullAiMessage = data.fullMessage || fullAiMessage;
+                break;
+              }
+
+              if (data.content) {
+                fullAiMessage += data.content;
+                setStreamingMessage(fullAiMessage);
+                // Auto-scroll as message streams
+                setTimeout(() => scrollToBottom(), 10);
+              }
+            } catch (parseError) {
+              console.error("Error parsing stream data:", parseError);
+            }
+          }
+        }
+      }
+
+      // Clear streaming message
+      setStreamingMessage("");
+
+      if (!fullAiMessage) {
+        throw new Error("No response from AI");
+      }
+
+      // Insert AI message to database
       const { data: aiMsg, error: aiMsgError } = await supabase
         .from("messages")
         // @ts-expect-error - Supabase insert type mismatch
         .insert({
           chat_session_id: sessionId,
           role: "assistant",
-          content: data.message,
+          content: fullAiMessage,
         })
         .select()
         .single();
@@ -215,6 +269,7 @@ function ChatInterfaceContent() {
     } catch (err) {
       console.error("Error sending message:", err);
       setError(err instanceof Error ? err.message : "Failed to send message");
+      setStreamingMessage("");
     } finally {
       setIsSending(false);
       setIsTyping(false);
@@ -383,6 +438,33 @@ function ChatInterfaceContent() {
             );
           })}
         </AnimatePresence>
+
+        {/* Streaming Message */}
+        {streamingMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex gap-2 items-start"
+          >
+            <Avatar
+              src={session.characters.avatar_url || ""}
+              alt={session.characters.name}
+              fallback={getCharacterEmoji(session.characters.name)}
+              size="sm"
+              className="mt-1"
+            />
+            <div className="max-w-[75%] rounded-2xl rounded-bl-md bg-[var(--muted)] text-[var(--foreground)] px-4 py-3">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                {streamingMessage}
+                <motion.span
+                  animate={{ opacity: [1, 0, 1] }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
+                  className="inline-block ml-1 w-2 h-4 bg-[var(--primary)]"
+                />
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Typing Indicator */}
         {isTyping && (
