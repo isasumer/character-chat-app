@@ -1,4 +1,7 @@
+'use client';
+
 import * as React from "react";
+import { Empty } from "antd";
 import { LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -20,25 +23,36 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
           className
         )}
       >
-        {Icon && (
-          <div className="rounded-full bg-[var(--muted)] p-4">
-            <Icon className="h-8 w-8 text-[var(--muted-foreground)]" />
-          </div>
-        )}
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          {description && (
-            <p className="text-sm text-[var(--muted-foreground)] max-w-md">
-              {description}
-            </p>
-          )}
-        </div>
-        {action && <div className="mt-2">{action}</div>}
+        <Empty
+          image={
+            Icon ? (
+              <div className="rounded-full bg-gray-100 dark:bg-gray-800 p-4 inline-flex">
+                <Icon className="h-8 w-8 text-gray-400 dark:text-gray-500" />
+              </div>
+            ) : (
+              Empty.PRESENTED_IMAGE_SIMPLE
+            )
+          }
+          description={
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {title}
+              </h3>
+              {description && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+                  {description}
+                </p>
+              )}
+            </div>
+          }
+        >
+          {action}
+        </Empty>
       </div>
     );
   }
 );
 EmptyState.displayName = "EmptyState";
 
-export { EmptyState };
+export { EmptyState, Empty };
 

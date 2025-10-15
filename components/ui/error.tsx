@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { Result } from "antd";
+import { RefreshCw } from "lucide-react";
 import { Button } from "./button";
 import { cn } from "../../lib/utils";
 
@@ -18,25 +19,23 @@ const ErrorDisplay = React.forwardRef<HTMLDivElement, ErrorDisplayProps>(
       <div
         ref={ref}
         className={cn(
-          "flex flex-col items-center justify-center gap-4 p-8 text-center",
+          "flex flex-col items-center justify-center p-8",
           className
         )}
       >
-        <div className="rounded-full bg-[var(--destructive)]/10 p-3">
-          <AlertCircle className="h-8 w-8 text-[var(--destructive)]" />
-        </div>
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <p className="text-sm text-[var(--muted-foreground)] max-w-md">
-            {message}
-          </p>
-        </div>
-        {retry && (
-          <Button onClick={retry} variant="outline" className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Try Again
-          </Button>
-        )}
+        <Result
+          status="error"
+          title={title}
+          subTitle={message}
+          extra={
+            retry && (
+              <Button onClick={retry} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            )
+          }
+        />
       </div>
     );
   }
@@ -96,5 +95,5 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-export { ErrorDisplay, ErrorBoundary };
+export { ErrorDisplay, ErrorBoundary, Result };
 

@@ -51,7 +51,7 @@ async function checkDatabase() {
 
     console.log(`\n✅ Connection successful! Found ${characters.length} character(s):\n`);
     
-    characters.forEach((char, index) => {
+    characters.forEach((char: any, index: number) => {
       console.log(`${index + 1}. 🎭 ${char.name}`);
       console.log(`   ID: ${char.id}`);
       console.log(`   📝 Description: ${char.description}`);

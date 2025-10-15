@@ -1,4 +1,7 @@
+'use client';
+
 import * as React from "react";
+import { Skeleton as AntSkeleton } from "antd";
 import { cn } from "../../lib/utils";
 
 function Skeleton({
@@ -8,7 +11,7 @@ function Skeleton({
   return (
     <div
       className={cn(
-        "animate-pulse rounded-md bg-[var(--muted)]",
+        "animate-pulse rounded-md bg-gray-200 dark:bg-gray-700",
         className
       )}
       {...props}
@@ -17,24 +20,19 @@ function Skeleton({
 }
 
 const SkeletonText = ({ lines = 3 }: { lines?: number }) => (
-  <div className="space-y-2">
-    {Array.from({ length: lines }).map((_, i) => (
-      <Skeleton
-        key={i}
-        className="h-4"
-        style={{ width: `${100 - (i === lines - 1 ? 30 : 0)}%` }}
-      />
-    ))}
-  </div>
+  <AntSkeleton
+    active
+    paragraph={{ rows: lines }}
+    title={false}
+  />
 );
 
 const SkeletonCard = () => (
-  <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
+  <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
     <div className="flex items-center gap-3">
-      <Skeleton className="h-12 w-12 rounded-full" />
-      <div className="space-y-2 flex-1">
-        <Skeleton className="h-4 w-1/3" />
-        <Skeleton className="h-3 w-1/2" />
+      <AntSkeleton.Avatar active size={48} />
+      <div className="flex-1">
+        <AntSkeleton active paragraph={{ rows: 1 }} title={{ width: '33%' }} />
       </div>
     </div>
     <SkeletonText lines={2} />
@@ -43,10 +41,9 @@ const SkeletonCard = () => (
 
 const SkeletonMessage = ({ isUser = false }: { isUser?: boolean }) => (
   <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
-    <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-    <div className="space-y-2 max-w-[70%]">
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className={cn("h-16 rounded-2xl", isUser ? "ml-auto" : "")} />
+    <AntSkeleton.Avatar active size={32} />
+    <div className="space-y-2 max-w-[70%] flex-1">
+      <AntSkeleton active paragraph={{ rows: 2 }} title={false} />
     </div>
   </div>
 );
@@ -64,6 +61,7 @@ export {
   SkeletonText, 
   SkeletonCard, 
   SkeletonMessage,
-  SkeletonChatList 
+  SkeletonChatList,
+  AntSkeleton
 };
 

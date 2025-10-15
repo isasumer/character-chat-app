@@ -13,7 +13,10 @@
     "setup:verify": "tsx scripts/test-auth.ts && tsx scripts/check-db.ts"
   },
   "dependencies": {
+    "@ant-design/cssinjs": "^1.24.0",
+    "@ant-design/nextjs-registry": "^1.1.0",
     "@supabase/supabase-js": "^2.75.0",
+    "antd": "^5.27.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",

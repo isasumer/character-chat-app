@@ -1,25 +1,26 @@
-import * as React from "react";
-import { cn } from "../../lib/utils";
-import Image from "next/image";
+'use client';
 
-interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
+import * as React from "react";
+import { Avatar as AntAvatar } from "antd";
+import type { AvatarProps as AntAvatarProps } from "antd";
+import { cn } from "../../lib/utils";
+
+interface AvatarProps extends Omit<AntAvatarProps, 'size'> {
   src?: string;
   alt?: string;
   fallback?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | number;
 }
 
-const sizeClasses = {
-  sm: "h-8 w-8 text-xs",
-  md: "h-10 w-10 text-sm",
-  lg: "h-12 w-12 text-base",
-  xl: "h-16 w-16 text-lg",
+const sizeMap = {
+  sm: 32,
+  md: 40,
+  lg: 48,
+  xl: 64,
 };
 
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
   ({ className, src, alt, fallback, size = "md", ...props }, ref) => {
-    const [imageError, setImageError] = React.useState(false);
-
     // Get initials from fallback text
     const getInitials = (text?: string) => {
       if (!text) return "?";
@@ -30,29 +31,25 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
       return text.substring(0, 2).toUpperCase();
     };
 
+    const avatarSize = typeof size === 'number' ? size : sizeMap[size];
+
     return (
-      <div
+      <AntAvatar
         ref={ref}
+        src={src}
+        alt={alt}
+        size={avatarSize}
         className={cn(
-          "relative flex shrink-0 overflow-hidden rounded-full bg-[var(--muted)]",
-          sizeClasses[size],
+          "flex items-center justify-center bg-gradient-to-br from-purple-600 to-purple-800",
           className
         )}
+        style={{
+          backgroundColor: !src ? 'linear-gradient(to bottom right, #7c3aed, #6d28d9)' : undefined,
+        }}
         {...props}
       >
-        {src && !imageError ? (
-          <Image
-            src={src}
-            alt={alt || "Avatar"}
-            className="h-full w-full object-cover"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)] to-purple-600 text-[var(--primary-foreground)] font-medium">
-            {getInitials(fallback || alt)}
-          </div>
-        )}
-      </div>
+        {!src && (fallback || getInitials(alt))}
+      </AntAvatar>
     );
   }
 );

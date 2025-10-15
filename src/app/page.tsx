@@ -17,9 +17,9 @@ export default function Home() {
 
   // Redirect if already logged in
   useEffect(() => {
-    // if (!auth?.loading && auth?.user) {
-    //   router.push("/chat");
-    // }
+    if (!auth?.loading && auth?.user) {
+      router.push("/chat");
+    }
   }, [auth?.loading, auth?.user, router]);
 
   const handleGoogleSignIn = async () => {
@@ -44,13 +44,13 @@ export default function Home() {
     }
   };
 
-  // if (auth?.loading) {
-  //   return <LoadingScreen message="Loading..." />;
-  // }
+  if (auth?.loading) {
+    return <LoadingScreen message="Loading..." />;
+  }
 
-  // if (auth?.user) {
-  //   return <LoadingScreen message="Redirecting..." />;
-  // }
+  if (auth?.user) {
+    return <LoadingScreen message="Redirecting..." />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -191,7 +191,7 @@ export default function Home() {
             onClick={handleGoogleSignIn}
             disabled={isLoading}
             loading={isLoading}
-            size="lg"
+            size="large"
             className="w-full bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-[var(--border)] hover:bg-gray-50 dark:hover:bg-gray-600 shadow-md"
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">

@@ -15,7 +15,7 @@ export { groq };
  * @returns Streaming response from Groq
  */
 export async function streamChatCompletion(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
   characterPrompt: string
 ) {
   const stream = await groq.chat.completions.create({
@@ -24,7 +24,10 @@ export async function streamChatCompletion(
         role: "system",
         content: characterPrompt,
       },
-      ...messages,
+      ...messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })),
     ],
     model: "llama-3.3-70b-versatile", // You can also use "gemma2-9b-it" or other models
     temperature: 0.7,
@@ -42,7 +45,7 @@ export async function streamChatCompletion(
  * @returns Complete response from Groq
  */
 export async function getChatCompletion(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
   characterPrompt: string
 ) {
   const completion = await groq.chat.completions.create({
@@ -51,7 +54,10 @@ export async function getChatCompletion(
         role: "system",
         content: characterPrompt,
       },
-      ...messages,
+      ...messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })),
     ],
     model: "llama-3.3-70b-versatile",
     temperature: 0.7,
