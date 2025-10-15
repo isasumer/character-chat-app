@@ -17,9 +17,9 @@ export default function Home() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (!auth?.loading && auth?.user) {
-      router.push("/chat");
-    }
+    // if (!auth?.loading && auth?.user) {
+    //   router.push("/chat");
+    // }
   }, [auth?.loading, auth?.user, router]);
 
   const handleGoogleSignIn = async () => {
@@ -35,20 +35,22 @@ export default function Home() {
       });
 
       if (error) throw error;
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error signing in:", err);
-      setError(err.message || "Failed to sign in. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Failed to sign in. Please try again."
+      );
       setIsLoading(false);
     }
   };
 
-  if (auth?.loading) {
-    return <LoadingScreen message="Loading..." />;
-  }
+  // if (auth?.loading) {
+  //   return <LoadingScreen message="Loading..." />;
+  // }
 
-  if (auth?.user) {
-    return <LoadingScreen message="Redirecting..." />;
-  }
+  // if (auth?.user) {
+  //   return <LoadingScreen message="Redirecting..." />;
+  // }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
