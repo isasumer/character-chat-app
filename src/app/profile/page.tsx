@@ -3,12 +3,10 @@
 import { motion } from "framer-motion";
 import { User, Mail, Calendar, LogOut, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ProtectedRoute } from "../../../components/protected-route";
-import { useAuth } from "../../../context/AuthContext";
-import { supabase } from "../../../lib/supabaseClient";
-import { Button } from "../../../components/ui/button";
-import { Avatar } from "../../../components/ui/avatar";
-import { Card } from "../../../components/ui/card";
+import { ProtectedRoute } from "@/components/protected-route";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+import { Button, Avatar, Card } from "@/components/ui";
 
 function ProfileContent() {
   const auth = useAuth();

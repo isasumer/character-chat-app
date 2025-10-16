@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 import { MessageSquare, Sparkles, Zap, Users } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabaseClient";
-import { Button } from "../../components/ui/button";
-import { LoadingScreen } from "../../components/ui/spinner";
+import { Button, LoadingScreen } from "@/components/ui";
 
 export default function Home() {
   const auth = useAuth();

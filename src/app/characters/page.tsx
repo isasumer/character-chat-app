@@ -4,14 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { ProtectedRoute } from "../../../components/protected-route";
-import { useAuth } from "../../../context/AuthContext";
-import { supabase } from "../../../lib/supabaseClient";
-import { Button } from "../../../components/ui/button";
-import { Avatar } from "../../../components/ui/avatar";
-import { Card } from "../../../components/ui/card";
-import { Skeleton } from "../../../components/ui/skeleton";
-import type { Character } from "../../../types/database";
+import { ProtectedRoute } from "@/components/protected-route";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+  import { Button, Avatar, Card, Skeleton } from "@/components/ui";
+import type { Character } from "@/types/database";
 
 function CharactersContent() {
   const auth = useAuth();
@@ -117,7 +114,6 @@ function CharactersContent() {
           </p>
         </motion.div>
 
-        {/* Characters Grid */}
         <div className="flex flex-col gap-4">
           {characters.map((character, index) => (
             <motion.div

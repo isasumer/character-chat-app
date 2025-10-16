@@ -4,22 +4,12 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
-import { ProtectedRoute } from "../../../../components/protected-route";
-import { useAuth } from "../../../../context/AuthContext";
-import { supabase } from "../../../../lib/supabaseClient";
-import { Button } from "../../../../components/ui/button";
-import { Input } from "../../../../components/ui/input";
-import { Avatar } from "../../../../components/ui/avatar";
-import { Skeleton } from "../../../../components/ui/skeleton";
-import type { Character, ChatSession, Message } from "../../../../types/database";
-
-interface MessageWithAnimation extends Message {
-  isNew?: boolean;
-}
-
-interface ChatSessionWithCharacter extends ChatSession {
-  characters: Character;
-}
+import { ProtectedRoute } from "@/components/protected-route";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+import { Button, Input, Avatar, Skeleton } from "@/components/ui";
+import type { Character, ChatSession, Message } from "@/types/database";
+import type { ChatSessionWithCharacter } from "../../types";
 
 function ChatInterfaceContent() {
   const auth = useAuth();
@@ -28,7 +18,7 @@ function ChatInterfaceContent() {
   const sessionId = params.sessionId as string;
 
   const [session, setSession] = useState<ChatSessionWithCharacter | null>(null);
-  const [messages, setMessages] = useState<MessageWithAnimation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -176,7 +166,6 @@ function ChatInterfaceContent() {
           message: userMessage,
           characterPrompt: session.characters.system_prompt,
           conversationHistory: messages
-            .filter((m) => !m.isNew)
             .map((m) => ({
               role: m.role,
               content: m.content,

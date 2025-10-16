@@ -4,41 +4,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Plus, Search, Sparkles, Clock } from "lucide-react";
-import { ProtectedRoute } from "../../../components/protected-route";
-import { useAuth } from "../../../context/AuthContext";
-import { supabase } from "../../../lib/supabaseClient";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Avatar } from "../../../components/ui/avatar";
-import { EmptyState } from "../../../components/ui/empty-state";
-import { Skeleton } from "../../../components/ui/skeleton";
-import { Card } from "../../../components/ui/card";
-import type { Character, ChatSession } from "../../../types/database";
-
-interface ChatSessionWithCharacter extends ChatSession {
-  characters: Character;
-}
-
-interface ChatSessionWithLastMessage extends ChatSessionWithCharacter {
-  last_message?: {
-    content: string;
-    created_at: string;
-  };
-}
-
-interface MessageQueryResult {
-  content: string;
-  created_at: string;
-}
-
-interface SessionQueryResult extends ChatSession {
-  characters: Character;
-}
+import { ProtectedRoute } from "@/components/protected-route";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabaseClient";
+import {
+  Button,
+  Input,
+  Avatar,
+  EmptyState,
+  Skeleton,
+  Card,
+} from "@/components/ui";
+import type { Character } from "@/types/database";
+import type {
+  ChatSessionWithLastMessage,
+  SessionQueryResult,
+  MessageQueryResult,
+} from "../types";
 
 function ChatListContent() {
   const auth = useAuth();
   const router = useRouter();
-  const [chatSessions, setChatSessions] = useState<ChatSessionWithLastMessage[]>([]);
+  const [chatSessions, setChatSessions] = useState<
+    ChatSessionWithLastMessage[]
+  >([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,10 +53,12 @@ function ChatListContent() {
         // Fetch user's chat sessions with character info
         const { data: sessionsData, error: sessionsError } = await supabase
           .from("chat_sessions")
-          .select(`
+          .select(
+            `
             *,
             characters (*)
-          `)
+          `
+          )
           .eq("user_id", auth.user?.id || "")
           .order("updated_at", { ascending: false });
 
@@ -75,23 +66,28 @@ function ChatListContent() {
 
         // Fetch last message for each session
         const sessionsWithMessages = await Promise.all(
-          ((sessionsData as SessionQueryResult[]) || []).map(async (session: SessionQueryResult) => {
-            const { data: lastMessage } = await supabase
-              .from("messages")
-              .select("content, created_at")
-              .eq("chat_session_id", session.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .single();
+          ((sessionsData as SessionQueryResult[]) || []).map(
+            async (session: SessionQueryResult) => {
+              const { data: lastMessage } = await supabase
+                .from("messages")
+                .select("content, created_at")
+                .eq("chat_session_id", session.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .single();
 
-            return {
-              ...session,
-              last_message: lastMessage ? {
-                content: (lastMessage as MessageQueryResult).content,
-                created_at: (lastMessage as MessageQueryResult).created_at
-              } : undefined,
-            } as ChatSessionWithLastMessage;
-          })
+              return {
+                ...session,
+                last_message: lastMessage
+                  ? {
+                      content: (lastMessage as MessageQueryResult).content,
+                      created_at: (lastMessage as MessageQueryResult)
+                        .created_at,
+                    }
+                  : undefined,
+              } as ChatSessionWithLastMessage;
+            }
+          )
         );
 
         setChatSessions(sessionsWithMessages);
@@ -392,7 +388,8 @@ function ChatListContent() {
                           />
                           <div className="flex-1">
                             <h3 className="font-semibold text-[var(--foreground)] mb-1">
-                              {character.name} {getCharacterEmoji(character.name)}
+                              {character.name}{" "}
+                              {getCharacterEmoji(character.name)}
                             </h3>
                             <p className="text-sm text-[var(--muted-foreground)]">
                               {character.description}

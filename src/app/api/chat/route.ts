@@ -13,7 +13,6 @@ interface ChatRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check for GROQ_API_KEY
     if (!process.env.GROQ_API_KEY) {
       console.error("GROQ_API_KEY is not set");
       return new Response(
@@ -32,17 +31,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare conversation history (limit to last 10 messages for context)
     const recentHistory = conversationHistory.slice(-10);
     const messages = [
       ...recentHistory,
       { role: "user" as const, content: message },
     ];
 
-    // Get streaming response from Groq
     const stream = await streamChatCompletion(messages, characterPrompt);
 
-    // Create a ReadableStream to send data to the client
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
       async start(controller) {
@@ -54,7 +50,6 @@ export async function POST(request: NextRequest) {
             
             if (content) {
               fullMessage += content;
-              // Send each chunk to the client
               const data = JSON.stringify({ 
                 content, 
                 done: false 
@@ -63,7 +58,6 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // Send final message with done flag
           const finalData = JSON.stringify({ 
             content: "", 
             done: true,
