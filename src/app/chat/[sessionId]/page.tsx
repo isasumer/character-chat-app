@@ -58,12 +58,19 @@ function ChatInterfaceContent() {
 
   const isLoading = isLoadingSession || isLoadingMessages;
 
-  // Sync RTK Query messages with local state
+  useEffect(() => {
+    setInputMessage("");
+    setIsSending(false);
+    setIsTyping(false);
+    setStreamingMessage("");
+    setError(null);
+    setLocalMessages([]);
+  }, [sessionId]);
+
   useEffect(() => {
     setLocalMessages(messages);
   }, [messages]);
 
-  // Real-time subscription for new messages (for multi-device sync)
   useEffect(() => {
     if (!sessionId) return;
 
@@ -80,12 +87,10 @@ function ChatInterfaceContent() {
     };
   }, [sessionId]);
 
-  // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottomHelper(messagesEndRef, 0);
   }, [localMessages.length]);
 
-  // Initialize message handler
   const messageHandler = new MessageHandler({
     onUserMessageSent: (message) => {
       setLocalMessages((prev) => [...prev, { ...message, isNew: true }]);
@@ -111,7 +116,6 @@ function ChatInterfaceContent() {
     },
   });
 
-  // Send message with streaming
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !session || !auth?.user?.id || isSending) return;
 
