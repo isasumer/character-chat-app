@@ -148,7 +148,6 @@ function ProfileContent() {
           className="mt-8 text-center text-sm text-[var(--muted-foreground)]"
         >
           <p>Character Chat App v1.0.0</p>
-          <p className="mt-1">Built with Next.js, Supabase & Groq AI</p>
         </motion.div>
       </div>
     </div>

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Plus, Search, Sparkles, Clock } from "lucide-react";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
 import {
   Button,
   Input,
@@ -15,137 +14,43 @@ import {
   Skeleton,
   Card,
 } from "@/components/ui";
-import type { Character } from "@/types/database";
-import type {
-  ChatSessionWithLastMessage,
-  SessionQueryResult,
-  MessageQueryResult,
-} from "../types";
-
 import { getCharacterEmoji } from "@/lib/utils";
+import {
+  useGetCharactersQuery,
+  useGetChatSessionsQuery,
+  useCreateChatSessionMutation,
+} from "@/store/services/chatApi";
+import type { Character } from "@/types/database";
+import type { ChatSessionWithLastMessage } from "../types";
 
 function ChatListContent() {
   const auth = useAuth();
   const router = useRouter();
-  const [chatSessions, setChatSessions] = useState<
-    ChatSessionWithLastMessage[]
-  >([]);
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
 
-  // Fetch chat sessions and characters
-  useEffect(() => {
-    if (!auth?.user?.id) return;
+  // Fetch data using RTK Query
+  const { data: characters = [], isLoading: isLoadingCharacters } = useGetCharactersQuery();
+  const { data: chatSessions = [], isLoading: isLoadingSessions } = useGetChatSessionsQuery(
+    auth?.user?.id || "",
+    { skip: !auth?.user?.id }
+  );
+  const [createChatSession] = useCreateChatSessionMutation();
 
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-
-        // Fetch all characters
-        const { data: charactersData, error: charactersError } = await supabase
-          .from("characters")
-          .select("*")
-          .order("name");
-
-        if (charactersError) throw charactersError;
-        setCharacters((charactersData as Character[]) || []);
-
-        // Fetch user's chat sessions with character info
-        const { data: sessionsData, error: sessionsError } = await supabase
-          .from("chat_sessions")
-          .select(
-            `
-            *,
-            characters (*)
-          `
-          )
-          .eq("user_id", auth.user?.id || "")
-          .order("updated_at", { ascending: false });
-
-        if (sessionsError) throw sessionsError;
-
-        // Fetch last message for each session
-        const sessionsWithMessages = await Promise.all(
-          ((sessionsData as SessionQueryResult[]) || []).map(
-            async (session: SessionQueryResult) => {
-              const { data: lastMessage } = await supabase
-                .from("messages")
-                .select("content, created_at")
-                .eq("chat_session_id", session.id)
-                .order("created_at", { ascending: false })
-                .limit(1)
-                .single();
-
-              return {
-                ...session,
-                last_message: lastMessage
-                  ? {
-                      content: (lastMessage as MessageQueryResult).content,
-                      created_at: (lastMessage as MessageQueryResult)
-                        .created_at,
-                    }
-                  : undefined,
-              } as ChatSessionWithLastMessage;
-            }
-          )
-        );
-
-        setChatSessions(sessionsWithMessages);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-
-    // Subscribe to real-time updates for chat sessions
-    const channel = supabase
-      .channel("chat_sessions_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "chat_sessions",
-          filter: `user_id=eq.${auth.user.id}`,
-        },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [auth?.user]);
+  const isLoading = isLoadingCharacters || isLoadingSessions;
 
   // Create new chat session
   const handleStartChat = async (characterId: string) => {
     if (!auth?.user?.id) return;
 
     try {
-      // Supabase insert types are overly strict, using type assertion
-      const result = await supabase
-        .from("chat_sessions")
-        // @ts-expect-error - Supabase generated types are incompatible with runtime insert
-        .insert({
-          user_id: auth.user.id,
-          character_id: characterId,
-        })
-        .select()
-        .single();
+      const result = await createChatSession({
+        userId: auth.user.id,
+        characterId,
+      }).unwrap();
 
-      const { data: newSession, error } = result;
-
-      if (error) throw error;
-      if (newSession) {
-        // @ts-expect-error - Supabase type mismatch
-        router.push(`/chat/${newSession.id}`);
+      if (result?.id) {
+        router.push(`/chat/${result.id}`);
       }
     } catch (error) {
       console.error("Error creating chat session:", error);
@@ -153,7 +58,7 @@ function ChatListContent() {
   };
 
   // Filter chat sessions based on search
-  const filteredSessions = chatSessions.filter((session) =>
+  const filteredSessions = chatSessions.filter((session: ChatSessionWithLastMessage) =>
     session.characters.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -272,7 +177,7 @@ function ChatListContent() {
         ) : (
           <div className="flex flex-col gap-3">
             <AnimatePresence>
-              {filteredSessions.map((session, index) => (
+              {filteredSessions.map((session: ChatSessionWithLastMessage, index: number) => (
                 <motion.div
                   key={session.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -358,7 +263,7 @@ function ChatListContent() {
 
               <div className="p-4 md:p-6 overflow-y-auto max-h-[60vh]">
                 <div className="space-y-3">
-                  {characters.map((character, index) => (
+                  {characters.map((character: Character, index: number) => (
                     <motion.div
                       key={character.id}
                       initial={{ opacity: 0, x: -20 }}

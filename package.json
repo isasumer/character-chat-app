@@ -15,6 +15,7 @@
   "dependencies": {
     "@ant-design/cssinjs": "^1.24.0",
     "@ant-design/nextjs-registry": "^1.1.0",
+    "@reduxjs/toolkit": "^2.9.0",
     "@supabase/supabase-js": "^2.75.0",
     "antd": "^5.27.5",
     "class-variance-authority": "^0.7.1",
@@ -26,6 +27,7 @@
     "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-redux": "^9.2.0",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {

@@ -1,63 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
 import { Button, Avatar, Card, Skeleton } from "@/components/ui";
-import type { Character } from "@/types/database";
 import { getCharacterEmoji } from "@/lib/utils";
+import { useGetCharactersQuery, useCreateChatSessionMutation } from "@/store/services/chatApi";
+import type { Character } from "@/types/database";
+
 function CharactersContent() {
   const auth = useAuth();
   const router = useRouter();
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Get character emoji
-
-  useEffect(() => {
-    const fetchCharacters = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from("characters")
-          .select("*")
-          .order("name");
-
-        if (error) throw error;
-        setCharacters((data as Character[]) || []);
-      } catch (error) {
-        console.error("Error fetching characters:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCharacters();
-  }, []);
+  const { data: characters = [], isLoading } = useGetCharactersQuery();
+  const [createChatSession] = useCreateChatSessionMutation();
 
   const handleStartChat = async (characterId: string) => {
     if (!auth?.user?.id) return;
 
     try {
-      // Create new chat session
-      const { data: newSession, error } = await supabase
-        .from("chat_sessions")
-        // @ts-expect-error - Supabase generated types are incompatible with runtime insert
-        .insert({
-          user_id: auth.user.id,
-          character_id: characterId,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (newSession) {
-        // @ts-expect-error - Supabase type mismatch
-        router.push(`/chat/${newSession.id}`);
+      const result = await createChatSession({
+        userId: auth.user.id,
+        characterId,
+      }).unwrap();
+      
+      if (result?.id) {
+        router.push(`/chat/${result.id}`);
       }
     } catch (error) {
       console.error("Error creating chat:", error);
@@ -105,7 +74,7 @@ function CharactersContent() {
         </motion.div>
 
         <div className="flex flex-col gap-4">
-          {characters.map((character, index) => (
+          {characters.map((character: Character, index: number) => (
             <motion.div
               key={character.id}
               initial={{ opacity: 0, y: 20 }}

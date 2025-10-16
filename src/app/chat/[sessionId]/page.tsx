@@ -10,7 +10,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button, Input, Avatar, Skeleton } from "@/components/ui";
 import type { Message } from "@/types/database";
 import { getCharacterEmoji } from "@/lib/utils";
-import type { ChatSessionWithCharacter } from "../../types";
+import {
+  useGetChatSessionQuery,
+  useGetMessagesQuery,
+  useUpdateChatSessionMutation,
+} from "@/store/services/chatApi";
 
 function ChatInterfaceContent() {
   const auth = useAuth();
@@ -18,81 +22,70 @@ function ChatInterfaceContent() {
   const params = useParams();
   const sessionId = params.sessionId as string;
 
-  const [session, setSession] = useState<ChatSessionWithCharacter | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch session and messages using RTK Query
+  const {
+    data: session,
+    isLoading: isLoadingSession,
+    error: sessionError,
+  } = useGetChatSessionQuery(
+    { sessionId, userId: auth?.user?.id || "" },
+    { skip: !auth?.user?.id || !sessionId }
+  );
+
+  const {
+    data: messages = [],
+    isLoading: isLoadingMessages,
+  } = useGetMessagesQuery(sessionId, { skip: !sessionId });
+
+  const [updateChatSession] = useUpdateChatSessionMutation();
+
+  const isLoading = isLoadingSession || isLoadingMessages;
+
+  // Sync RTK Query messages with local state
+  useEffect(() => {
+    setLocalMessages(messages);
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Real-time subscription for new messages (for multi-device sync)
   useEffect(() => {
-    if (!auth?.user?.id || !sessionId) return;
-
-    const fetchChatData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        const { data: sessionData, error: sessionError } = await supabase
-          .from("chat_sessions")
-          .select(`
-            *,
-            characters (*)
-          `)
-          .eq("id", sessionId)
-          .eq("user_id", auth.user?.id || "")
-          .single();
-
-        if (sessionError) throw sessionError;
-        if (!sessionData) {
-          setError("Chat session not found");
-          return;
-        }
-
-        setSession(sessionData as ChatSessionWithCharacter);
-
-        const { data: messagesData, error: messagesError } = await supabase
-          .from("messages")
-          .select("*")
-          .eq("chat_session_id", sessionId)
-          .order("created_at", { ascending: true });
-
-        if (messagesError) throw messagesError;
-        setMessages((messagesData as Message[]) || []);
-      } catch (err) {
-        console.error("Error fetching chat data:", err);
-        setError(err instanceof Error ? err.message : "Failed to load chat");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchChatData();
+    if (!sessionId) return;
 
     const channel = supabase
       .channel(`chat_${sessionId}`)
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "messages",
           filter: `chat_session_id=eq.${sessionId}`,
         },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newMessage = payload.new as Message;
-            setMessages((prev) => [...prev, { ...newMessage, isNew: true }]);
-            setTimeout(scrollToBottom, 100);
-          }
+          const newMessage = payload.new as Message;
+          setLocalMessages((prev) => {
+            // Avoid duplicates - check by ID and content
+            const isDuplicate = prev.some(
+              (m) => m.id === newMessage.id || 
+              (m.content === newMessage.content && m.role === newMessage.role && 
+               Math.abs(new Date(m.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 1000)
+            );
+            if (isDuplicate) return prev;
+            return [...prev, { ...newMessage, isNew: true }];
+          });
+          setTimeout(scrollToBottom, 100);
         }
       )
       .subscribe();
@@ -100,12 +93,12 @@ function ChatInterfaceContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [auth?.user?.id, sessionId]);
+  }, [sessionId]);
 
   // Auto-scroll when messages change
   useEffect(() => {
     scrollToBottom();
-  }, [messages.length]);
+  }, [localMessages.length]);
 
   // Send message with streaming
   const handleSendMessage = async () => {
@@ -132,9 +125,9 @@ function ChatInterfaceContent() {
 
       if (userMsgError) throw userMsgError;
 
-      // Add user message to state
+      // Add user message to local state immediately
       if (userMsg) {
-        setMessages((prev) => [...prev, { ...(userMsg as Message), isNew: true }]);
+        setLocalMessages((prev) => [...prev, { ...(userMsg as Message), isNew: true }]);
       }
 
       // Show typing indicator briefly, then start streaming
@@ -149,7 +142,7 @@ function ChatInterfaceContent() {
           sessionId,
           message: userMessage,
           characterPrompt: session.characters.system_prompt,
-          conversationHistory: messages
+          conversationHistory: localMessages
             .map((m) => ({
               role: m.role,
               content: m.content,
@@ -228,17 +221,13 @@ function ChatInterfaceContent() {
 
       if (aiMsgError) throw aiMsgError;
 
-      // Add AI message to state
+      // Add AI message to local state immediately
       if (aiMsg) {
-        setMessages((prev) => [...prev, { ...(aiMsg as Message), isNew: true }]);
+        setLocalMessages((prev) => [...prev, { ...(aiMsg as Message), isNew: true }]);
       }
 
-      // Update session updated_at
-      await supabase
-        .from("chat_sessions")
-        // @ts-expect-error - Supabase update type mismatch
-        .update({ updated_at: new Date().toISOString() })
-        .eq("id", sessionId);
+      // Update session timestamp using RTK Query mutation
+      await updateChatSession(sessionId);
     } catch (err) {
       console.error("Error sending message:", err);
       setError(err instanceof Error ? err.message : "Failed to send message");
@@ -299,11 +288,11 @@ function ChatInterfaceContent() {
     );
   }
 
-  if (error && !session) {
+  if (sessionError || (error && !session)) {
     return (
       <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
+          <p className="text-red-500 mb-4">{error || "Chat session not found"}</p>
           <Button onClick={() => router.push("/chat")}>Back to Chats</Button>
         </div>
       </div>
@@ -354,10 +343,10 @@ function ChatInterfaceContent() {
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto w-full">
         <AnimatePresence initial={false}>
-          {messages.map((message, index) => {
+          {localMessages.map((message, index) => {
             const isUser = message.role === "user";
             const isFirstOfType =
-              index === 0 || messages[index - 1].role !== message.role;
+              index === 0 || localMessages[index - 1].role !== message.role;
 
             return (
               <motion.div
