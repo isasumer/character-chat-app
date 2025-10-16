@@ -203,7 +203,7 @@ function ChatListContent() {
         </div>
 
         {/* Chat Sessions Skeleton */}
-        <div className="p-4 space-y-3">
+        <div className="p-4 md:p-6 lg:p-8 flex flex-col gap-4 max-w-4xl mx-auto">
           {[...Array(5)].map((_, i) => (
             <Card key={i} className="p-4">
               <div className="flex gap-3">
@@ -221,10 +221,10 @@ function ChatListContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pb-20">
+    <div className="min-h-screen bg-[var(--background)] pb-20 md:pb-0">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
-        <div className="px-4 py-4">
+        <div className="flex flex-col gap-4 px-4 md:px-6 lg:px-8 py-4 md:py-5">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -259,7 +259,7 @@ function ChatListContent() {
       </div>
 
       {/* Chat Sessions List */}
-      <div className="p-4">
+      <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
         {filteredSessions.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -283,7 +283,7 @@ function ChatListContent() {
             />
           </motion.div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             <AnimatePresence>
               {filteredSessions.map((session, index) => (
                 <motion.div
@@ -352,9 +352,9 @@ function ChatListContent() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-[var(--background)] rounded-2xl shadow-2xl border border-[var(--border)] z-50 max-h-[80vh] overflow-hidden"
+              className="fixed inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 top-1/2 -translate-y-1/2 max-w-md w-full mx-auto bg-[var(--background)] rounded-2xl shadow-2xl border border-[var(--border)] z-50 max-h-[80vh] overflow-hidden"
             >
-              <div className="p-6 border-b border-[var(--border)]">
+              <div className="p-6 md:p-8 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold">Choose a Character</h2>
                   <button
@@ -369,7 +369,7 @@ function ChatListContent() {
                 </p>
               </div>
 
-              <div className="p-4 overflow-y-auto max-h-[60vh]">
+              <div className="p-4 md:p-6 overflow-y-auto max-h-[60vh]">
                 <div className="space-y-3">
                   {characters.map((character, index) => (
                     <motion.div

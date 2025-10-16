@@ -28,7 +28,7 @@ const SkeletonText = ({ lines = 3 }: { lines?: number }) => (
 );
 
 const SkeletonCard = () => (
-  <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
+  <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex flex-col gap-3">
     <div className="flex items-center gap-3">
       <AntSkeleton.Avatar active size={48} />
       <div className="flex-1">

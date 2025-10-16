@@ -342,10 +342,10 @@ function ChatInterfaceContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex flex-col">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)]">
-        <div className="px-4 py-3">
+      <div className="sticky top-0 z-10 bg-[var(--background)]/80 backdrop-blur-lg border-b border-[var(--border)] w-full">
+        <div className="px-4 md:px-6 lg:px-8 py-3 md:py-4">
           <div className="flex items-center gap-3">
             {/* Back Button */}
             <Button
@@ -379,7 +379,7 @@ function ChatInterfaceContent() {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto w-full">
         <AnimatePresence initial={false}>
           {messages.map((message, index) => {
             const isUser = message.role === "user";
@@ -415,7 +415,7 @@ function ChatInterfaceContent() {
                 {/* Message Bubble */}
                 <div
                   className={`
-                    max-w-[75%] rounded-2xl px-4 py-3 
+                    max-w-[75%] md:max-w-[65%] rounded-2xl shadow-sm p-2
                     ${
                       isUser
                         ? "bg-[var(--primary)] text-white rounded-br-md"
@@ -423,7 +423,7 @@ function ChatInterfaceContent() {
                     }
                   `}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words ">
                     {message.content}
                   </p>
                   <span
@@ -453,7 +453,7 @@ function ChatInterfaceContent() {
               size="sm"
               className="mt-1"
             />
-            <div className="max-w-[75%] rounded-2xl rounded-bl-md bg-[var(--muted)] text-[var(--foreground)] px-4 py-3">
+            <div className="max-w-[75%] md:max-w-[65%] rounded-2xl rounded-bl-md bg-[var(--muted)] text-[var(--foreground)] shadow-sm p-12px">
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {streamingMessage}
                 <motion.span
@@ -520,7 +520,8 @@ function ChatInterfaceContent() {
       )}
 
       {/* Message Input */}
-      <div className="sticky bottom-0 bg-[var(--background)] border-t border-[var(--border)] p-4">
+      <div className="sticky bottom-0 bg-[var(--background)] border-t border-[var(--border)] p-4 md:p-6 lg:p-8 w-full">
+        <div className="">
         <div className="flex gap-2 items-end">
           <div className="flex-1">
             <Input
@@ -546,6 +547,7 @@ function ChatInterfaceContent() {
             disabled={!inputMessage.trim() || isSending}
             className="!h-[48px] !w-[48px]"
           />
+        </div>
         </div>
       </div>
     </div>

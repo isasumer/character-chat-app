@@ -34,7 +34,7 @@ const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(
             )
           }
           description={
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {title}
               </h3>
