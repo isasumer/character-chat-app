@@ -7,9 +7,9 @@ import { Sparkles } from "lucide-react";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
-  import { Button, Avatar, Card, Skeleton } from "@/components/ui";
+import { Button, Avatar, Card, Skeleton } from "@/components/ui";
 import type { Character } from "@/types/database";
-
+import { getCharacterEmoji } from "@/lib/utils";
 function CharactersContent() {
   const auth = useAuth();
   const router = useRouter();
@@ -17,16 +17,6 @@ function CharactersContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Get character emoji
-  const getCharacterEmoji = (name: string) => {
-    const emojiMap: Record<string, string> = {
-      Luna: "🌙",
-      Alex: "💻",
-      "Dr. Sage": "🧠",
-      Kai: "💪",
-      Echo: "🔬",
-    };
-    return emojiMap[name] || "🤖";
-  };
 
   useEffect(() => {
     const fetchCharacters = async () => {
@@ -174,4 +164,3 @@ export default function CharactersPage() {
     </ProtectedRoute>
   );
 }
-

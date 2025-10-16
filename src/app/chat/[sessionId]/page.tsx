@@ -8,7 +8,8 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabaseClient";
 import { Button, Input, Avatar, Skeleton } from "@/components/ui";
-import type { Character, ChatSession, Message } from "@/types/database";
+import type { Message } from "@/types/database";
+import { getCharacterEmoji } from "@/lib/utils";
 import type { ChatSessionWithCharacter } from "../../types";
 
 function ChatInterfaceContent() {
@@ -28,24 +29,10 @@ function ChatInterfaceContent() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Get character emoji
-  const getCharacterEmoji = (name: string) => {
-    const emojiMap: Record<string, string> = {
-      Luna: "🌙",
-      Alex: "💻",
-      "Dr. Sage": "🧠",
-      Kai: "💪",
-      Echo: "🔬",
-    };
-    return emojiMap[name] || "🤖";
-  };
-
-  // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Fetch chat session and messages
   useEffect(() => {
     if (!auth?.user?.id || !sessionId) return;
 
@@ -54,7 +41,6 @@ function ChatInterfaceContent() {
         setIsLoading(true);
         setError(null);
 
-        // Fetch chat session with character info
         const { data: sessionData, error: sessionError } = await supabase
           .from("chat_sessions")
           .select(`
@@ -73,7 +59,6 @@ function ChatInterfaceContent() {
 
         setSession(sessionData as ChatSessionWithCharacter);
 
-        // Fetch messages
         const { data: messagesData, error: messagesError } = await supabase
           .from("messages")
           .select("*")
@@ -92,7 +77,6 @@ function ChatInterfaceContent() {
 
     fetchChatData();
 
-    // Subscribe to real-time message updates
     const channel = supabase
       .channel(`chat_${sessionId}`)
       .on(

@@ -22,6 +22,8 @@ import type {
   MessageQueryResult,
 } from "../types";
 
+import { getCharacterEmoji } from "@/lib/utils";
+
 function ChatListContent() {
   const auth = useAuth();
   const router = useRouter();
@@ -155,17 +157,6 @@ function ChatListContent() {
     session.characters.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Get character emoji
-  const getCharacterEmoji = (name: string) => {
-    const emojiMap: Record<string, string> = {
-      Luna: "🌙",
-      Alex: "💻",
-      "Dr. Sage": "🧠",
-      Kai: "💪",
-      Echo: "🔬",
-    };
-    return emojiMap[name] || "🤖";
-  };
 
   // Format timestamp
   const formatTimestamp = (timestamp: string) => {
