@@ -1,3 +1,4 @@
+![alt-text](https://github.com/isasumer/character-chat-app/blob/master/demo-chat-app.gif)
 # Character Chat App
 
 A modern, mobile-first AI character chat application inspired by Character.AI, built to showcase UI/UX design, animation quality, and modern web development skills. This project was developed as a technical case study.
