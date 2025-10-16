@@ -22,6 +22,7 @@ import {
 } from "@/store/services/chatApi";
 import type { Character } from "@/types/database";
 import type { ChatSessionWithLastMessage } from "../types";
+import { formatRelativeTime } from "@/lib/helpers";
 
 function ChatListContent() {
   const auth = useAuth();
@@ -61,27 +62,6 @@ function ChatListContent() {
   const filteredSessions = chatSessions.filter((session: ChatSessionWithLastMessage) =>
     session.characters.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-
-  // Format timestamp
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) {
-      return "Just now";
-    } else if (diffInHours < 24) {
-      return `${Math.floor(diffInHours)}h ago`;
-    } else if (diffInHours < 48) {
-      return "Yesterday";
-    } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -208,7 +188,7 @@ function ChatListContent() {
                           {session.last_message && (
                             <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {formatTimestamp(session.last_message.created_at)}
+                              {formatRelativeTime(session.last_message.created_at)}
                             </span>
                           )}
                         </div>

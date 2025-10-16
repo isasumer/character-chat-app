@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
 import { Button, Input, Avatar, Skeleton } from "@/components/ui";
 import type { Message } from "@/types/database";
 import { getCharacterEmoji } from "@/lib/utils";
@@ -15,6 +14,15 @@ import {
   useGetMessagesQuery,
   useUpdateChatSessionMutation,
 } from "@/store/services/chatApi";
+import {
+  formatTime,
+  subscribeToChatMessages,
+  unsubscribeChannel,
+  isDuplicateMessage,
+  scrollToBottom as scrollToBottomHelper,
+  MessageHandler,
+  formatConversationHistory,
+} from "@/lib/helpers";
 
 function ChatInterfaceContent() {
   const auth = useAuth();
@@ -55,50 +63,53 @@ function ChatInterfaceContent() {
     setLocalMessages(messages);
   }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   // Real-time subscription for new messages (for multi-device sync)
   useEffect(() => {
     if (!sessionId) return;
 
-    const channel = supabase
-      .channel(`chat_${sessionId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `chat_session_id=eq.${sessionId}`,
-        },
-        (payload) => {
-          const newMessage = payload.new as Message;
-          setLocalMessages((prev) => {
-            // Avoid duplicates - check by ID and content
-            const isDuplicate = prev.some(
-              (m) => m.id === newMessage.id || 
-              (m.content === newMessage.content && m.role === newMessage.role && 
-               Math.abs(new Date(m.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 1000)
-            );
-            if (isDuplicate) return prev;
-            return [...prev, { ...newMessage, isNew: true }];
-          });
-          setTimeout(scrollToBottom, 100);
-        }
-      )
-      .subscribe();
+    const channel = subscribeToChatMessages(sessionId, (newMessage) => {
+      setLocalMessages((prev) => {
+        if (isDuplicateMessage(prev, newMessage)) return prev;
+        return [...prev, { ...newMessage, isNew: true }];
+      });
+      scrollToBottomHelper(messagesEndRef, 100);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribeChannel(channel);
     };
   }, [sessionId]);
 
   // Auto-scroll when messages change
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottomHelper(messagesEndRef, 0);
   }, [localMessages.length]);
+
+  // Initialize message handler
+  const messageHandler = new MessageHandler({
+    onUserMessageSent: (message) => {
+      setLocalMessages((prev) => [...prev, { ...message, isNew: true }]);
+    },
+    onTypingStart: () => setIsTyping(true),
+    onTypingEnd: () => setIsTyping(false),
+    onStreamStart: () => setStreamingMessage(""),
+    onStreamChunk: (content) => {
+      setStreamingMessage((prev) => prev + content);
+      scrollToBottomHelper(messagesEndRef, 10);
+    },
+    onStreamComplete: (message) => {
+      setStreamingMessage("");
+      setLocalMessages((prev) => [...prev, { ...message, isNew: true }]);
+    },
+    onError: (error) => {
+      setError(error);
+      setStreamingMessage("");
+    },
+    onFinally: () => {
+      setIsSending(false);
+      setIsTyping(false);
+    },
+  });
 
   // Send message with streaming
   const handleSendMessage = async () => {
@@ -108,133 +119,20 @@ function ChatInterfaceContent() {
     setInputMessage("");
     setIsSending(true);
     setError(null);
-    setStreamingMessage("");
 
     try {
-      // Insert user message
-      const { data: userMsg, error: userMsgError } = await supabase
-        .from("messages")
-        // @ts-expect-error - Supabase insert type mismatch
-        .insert({
-          chat_session_id: sessionId,
-          role: "user",
-          content: userMessage,
-        })
-        .select()
-        .single();
-
-      if (userMsgError) throw userMsgError;
-
-      // Add user message to local state immediately
-      if (userMsg) {
-        setLocalMessages((prev) => [...prev, { ...(userMsg as Message), isNew: true }]);
-      }
-
-      // Show typing indicator briefly, then start streaming
-      setIsTyping(true);
-      setTimeout(() => setIsTyping(false), 500);
-
-      // Get streaming AI response
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          message: userMessage,
-          characterPrompt: session.characters.system_prompt,
-          conversationHistory: localMessages
-            .map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-        }),
+      await messageHandler.sendMessage({
+        sessionId,
+        message: userMessage,
+        characterPrompt: session.characters.system_prompt,
+        conversationHistory: formatConversationHistory(localMessages),
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", errorText);
-        throw new Error(`Failed to get AI response: ${response.status} ${response.statusText}`);
-      }
-
-      if (!response.body) {
-        throw new Error("No response body received from server");
-      }
-
-      // Read streaming response
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullAiMessage = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.error) {
-                throw new Error(data.error);
-              }
-
-              if (data.done) {
-                fullAiMessage = data.fullMessage || fullAiMessage;
-                break;
-              }
-
-              if (data.content) {
-                fullAiMessage += data.content;
-                setStreamingMessage(fullAiMessage);
-                // Auto-scroll as message streams
-                setTimeout(() => scrollToBottom(), 10);
-              }
-            } catch (parseError) {
-              console.error("Error parsing stream data:", parseError);
-            }
-          }
-        }
-      }
-
-      // Clear streaming message
-      setStreamingMessage("");
-
-      if (!fullAiMessage) {
-        throw new Error("No response from AI");
-      }
-
-      // Insert AI message to database
-      const { data: aiMsg, error: aiMsgError } = await supabase
-        .from("messages")
-        // @ts-expect-error - Supabase insert type mismatch
-        .insert({
-          chat_session_id: sessionId,
-          role: "assistant",
-          content: fullAiMessage,
-        })
-        .select()
-        .single();
-
-      if (aiMsgError) throw aiMsgError;
-
-      // Add AI message to local state immediately
-      if (aiMsg) {
-        setLocalMessages((prev) => [...prev, { ...(aiMsg as Message), isNew: true }]);
-      }
 
       // Update session timestamp using RTK Query mutation
       await updateChatSession(sessionId);
     } catch (err) {
-      console.error("Error sending message:", err);
-      setError(err instanceof Error ? err.message : "Failed to send message");
-      setStreamingMessage("");
-    } finally {
-      setIsSending(false);
-      setIsTyping(false);
+      // Error already handled by messageHandler
+      console.error("Error in handleSendMessage:", err);
     }
   };
 
@@ -244,16 +142,6 @@ function ChatInterfaceContent() {
       e.preventDefault();
       handleSendMessage();
     }
-  };
-
-  // Format timestamp
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
   };
 
   if (isLoading) {
@@ -393,7 +281,7 @@ function ChatInterfaceContent() {
                       isUser ? "text-white/70" : "text-[var(--muted-foreground)]"
                     }`}
                   >
-                    {formatTimestamp(message.created_at)}
+                    {formatTime(message.created_at)}
                   </span>
                 </div>
               </motion.div>

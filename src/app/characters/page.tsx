@@ -7,27 +7,21 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/context/AuthContext";
 import { Button, Avatar, Card, Skeleton } from "@/components/ui";
 import { getCharacterEmoji } from "@/lib/utils";
-import { useGetCharactersQuery, useCreateChatSessionMutation } from "@/store/services/chatApi";
+import { useGetCharactersQuery } from "@/store/services/chatApi";
 import type { Character } from "@/types/database";
+import { createChatSession } from "@/lib/helpers";
 
 function CharactersContent() {
   const auth = useAuth();
   const router = useRouter();
   const { data: characters = [], isLoading } = useGetCharactersQuery();
-  const [createChatSession] = useCreateChatSessionMutation();
 
   const handleStartChat = async (characterId: string) => {
     if (!auth?.user?.id) return;
 
     try {
-      const result = await createChatSession({
-        userId: auth.user.id,
-        characterId,
-      }).unwrap();
-      
-      if (result?.id) {
-        router.push(`/chat/${result.id}`);
-      }
+      const sessionId = await createChatSession(auth.user.id, characterId);
+      router.push(`/chat/${sessionId}`);
     } catch (error) {
       console.error("Error creating chat:", error);
     }

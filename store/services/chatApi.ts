@@ -6,7 +6,7 @@ import type {
   ChatSessionWithLastMessage,
   SessionQueryResult,
   MessageQueryResult 
-} from '@/src/app/types';
+} from '@/app/types';
 
 export const chatApi = createApi({
   reducerPath: 'chatApi',

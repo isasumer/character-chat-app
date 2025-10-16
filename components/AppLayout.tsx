@@ -11,7 +11,7 @@ import {
   LogOut,
   MessageCircle,
 } from "lucide-react";
-import { supabase } from "../lib/supabaseClient";
+import { signOut } from "@/lib/helpers";
 import { BottomNav } from "./BottomNav";
 
 const { Sider, Content } = Layout;
@@ -50,7 +50,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
       router.push("/");
     } catch (error) {
       console.error("Error signing out:", error);

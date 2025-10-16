@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MessageSquare, Sparkles, User, LogOut } from "lucide-react";
-import { supabase } from "../lib/supabaseClient";
+import { signOut } from "@/lib/helpers";
 
 interface NavItem {
   id: string;
@@ -19,7 +19,7 @@ export function BottomNav() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
       router.push("/");
     } catch (error) {
       console.error("Error signing out:", error);

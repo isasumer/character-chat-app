@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { signInWithGoogle } from "@/lib/helpers";
 
 export default function LoginCard() {
   const [isLoading, setIsLoading] = useState(false);
@@ -11,14 +11,7 @@ export default function LoginCard() {
       setIsLoading(true);
       setError(null);
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/chat`,
-        },
-      });
-
-      if (error) throw error;
+      await signInWithGoogle(`${window.location.origin}/chat`);
     } catch (err) {
       console.error("Error signing in:", err);
       setError(

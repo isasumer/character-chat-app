@@ -5,8 +5,8 @@ import { User, Mail, Calendar, LogOut, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabaseClient";
 import { Button, Avatar, Card } from "@/components/ui";
+import { formatFullDate, signOut } from "@/lib/helpers";
 
 function ProfileContent() {
   const auth = useAuth();
@@ -14,7 +14,7 @@ function ProfileContent() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut();
       router.push("/");
     } catch (error) {
       console.error("Error signing out:", error);
@@ -27,19 +27,11 @@ function ProfileContent() {
     }
 
     try {
-      await supabase.auth.signOut();
+      await signOut();
       router.push("/");
     } catch (error) {
       console.error("Error deleting account:", error);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   };
 
   return (
@@ -104,7 +96,7 @@ function ProfileContent() {
                     Member since:
                   </span>
                   <span className="font-medium">
-                    {formatDate(auth.user.created_at)}
+                    {formatFullDate(auth.user.created_at)}
                   </span>
                 </div>
               )}
